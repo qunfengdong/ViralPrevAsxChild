@@ -1,0 +1,82 @@
+#Last update 08/30/2020
+
+In the JAMA Pediatrics paper
+https://jamanetwork.com/journals/jamapediatrics/fullarticle/2769878?utm_source=silverchair&utm_campaign=jama_network&utm_content=covid_weekly_highlights&utm_medium=email   Table 1
+
+###################################### WinBUGS parameters #####################################
+4 chains, beg=10,000, thin=4, updates=100,000
+############################# Data #############################################################
+
+##################WinBUGS Model 1##########################################
+#The BUGS model is modified from p221 Hierarchical models in the BUGS book#
+###########################################################################
+model{
+	#all regions - 25
+	for (i in 1:25){
+		#y[i] correspond to the observed number of infected subject in site i
+		#theta[i] correspond to the unknown prevalence of infection in site i
+		#n[i] correspond to the total number of tested subject
+		y[i] ~ dbin(theta[i], n[i])  #binomial likelihood
+		logit(theta[i]) <- logit.theta[i] 
+		logit.theta[i] ~ dnorm(mu, inv.omega.squared) #model the logit of theta as normal distribution
+	} 
+	#flat priors
+	inv.omega.squared <- 1/pow(omega, 2)
+	omega ~ dunif(0, 40)
+	mu ~ dunif(-40, 40)
+}
+
+#####Data for model 1###
+All regions
+list(y=c(0, 0, 4, 5, 6, 6, 14, 40, 45, 6, 10, 7, 8, 9, 1, 12, 2, 7, 4, 23, 0, 3, 23, 7, 8), n=c(231, 143, 1919, 2058, 1821, 1562, 1506, 3032, 3039, 2000, 1704, 580, 525, 408, 1293, 2767, 443, 1528, 534, 1789, 42, 774, 2273, 514, 556))
+#########################
+
+
+################WinBUGS Model 2##########################################################################################
+#The BUGS model is modified from p223 Hierarchical models in the BUGS book, consider the following additional clusters  #
+#  #West region -1													#
+#  #Midwest region - 2													#
+#  #South region - 3													#
+#  #Northeast region - 4												#
+#########################################################################################################################
+model{
+	#all regions - 25
+	for (i in 1:25){
+		#y[i] correspond to the observed number of infected subject in site i
+                #theta[i] correspond to the unknown prevalence of infection in site i
+                #n[i] correspond to the total number of tested subject
+		#x[i] correspond to the large region code
+		y[i] ~ dbin(theta[i], n[i])
+		logit(theta[i]) <- logit.theta[i]
+		logit.theta[i] ~ dnorm(mu[i], inv.omega.squared)
+		mu[i] <- alpha + beta[x[i]] #use 'double indexing' feature of BUGS language
+					    #mu[i] is influneced by the larger region x[i]
+	} 
+	inv.omega.squared <- 1/pow(omega, 2)
+	omega ~ dunif(0, 40)
+	alpha ~ dnorm(0, 0.0001)
+	beta[1] <- 0 #coefficient for reference category
+	beta[2] ~ dnorm(0, 0.0001)
+	beta[3] ~ dnorm(0, 0.0001)
+	beta[4] ~ dnorm(0, 0.0001)
+	#if necessary we can use step function to rank elements in beta
+}
+
+#########Data for model 2#####################
+All regions
+list(y=c(0, 0, 4, 5, 6, 6, 14, 40, 45, 6, 10, 7, 8, 9, 1, 12, 2, 7, 4, 23, 0, 3, 23, 7, 8), 
+	n=c(231, 143, 1919, 2058, 1821, 1562, 1506, 3032, 3039, 2000, 1704, 580, 525, 408, 1293, 2767, 443, 1528, 534, 1789, 42, 774, 2273, 514, 556),
+		x=c(1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4)
+	)
+	#note for code in x
+	#West region - 1
+	#Midwest region - 2
+	#South region - 3
+	#Northeast region - 4
+	
+######################################
+
+*********************************************************************
+#for this dataset, Model 1 and Model 6 produce similar results (result from Model 6 was reporte in the Correspondance to JAMA Pediatrics)
+	
+
